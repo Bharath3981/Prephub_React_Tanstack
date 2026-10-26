@@ -8,6 +8,8 @@ export function Footer() {
         <span>PrepHub React + TanStack Query: interview preparation, one concept at a time.</span>
         {import.meta.env.DEV && (
           <nav aria-label="Development tools" className="flex gap-3">
+            <Link className="underline" to="/dev/fetch-vs-query">Fetch vs Query</Link>
+            <Link className="underline" to="/dev/stale-closure">Stale closure</Link>
             <Link className="underline" to="/dev/boom">Crash</Link>
           </nav>
         )}

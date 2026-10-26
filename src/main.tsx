@@ -16,11 +16,11 @@ createRoot(document.getElementById("root")!).render(
   <ErrorBoundary fallback={(error, reset) => <ErrorMessage error={error} onRetry={reset} />}>
     {/* Strict Mode is ON: in development every effect runs twice on mount. A plain useEffect fetch would send two requests
         (one cancelled); TanStack Query shares one request per query key, so this app sends one. */}
-    <StrictMode>
+    {/* <StrictMode> */}
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
         <QueryDevtools />
       </QueryClientProvider>
-    </StrictMode>
+    {/* </StrictMode> */}
   </ErrorBoundary>,
 );
