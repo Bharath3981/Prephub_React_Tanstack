@@ -5,12 +5,16 @@ import {
   categoryDetailDataSchema,
   entriesDataSchema,
   entryDataSchema,
+  tagDetailDataSchema,
+  tagsDataSchema,
   pageMetaSchema,
   type DeliveryCategory,
   type DeliveryCategoryDetail,
   type Difficulty,
   type EntriesPage,
   type EntryDetail,
+  type TagEntries,
+  type TagsPage,
 } from "@/features/catalog/types";
 
 /**
@@ -48,4 +52,30 @@ export async function getEntry(categorySlug: string, sectionSlug: string, entryS
   const path = `/delivery/categories/${encodeURIComponent(categorySlug)}/sections/${encodeURIComponent(sectionSlug)}/entries/${encodeURIComponent(entrySlug)}`;
   const response = await api<unknown>(path, { signal });
   return parseResponse(entryDataSchema, response.data).entry;
+}
+
+export interface QuestionsQuery extends EntriesQuery {
+  /** Only questions from this topic (a category slug). */
+  category?: string;
+  /** Only questions with this tag (a tag slug). */
+  tag?: string;
+}
+
+/** Questions from ALL topics, one page at a time, with optional filters. Same row shape as a section's entries. */
+export async function getQuestions(query: QuestionsQuery = {}, signal?: AbortSignal): Promise<EntriesPage> {
+  const response = await api<unknown>("/delivery/questions", { query: { ...query }, signal });
+  return { entries: parseResponse(entriesDataSchema, response.data).entries, meta: parseResponse(pageMetaSchema, response.meta) };
+}
+
+/** All tags, most used first, one page at a time (the API allows at most 100 per page). */
+export async function getTags(query: { page?: number; limit?: number } = {}, signal?: AbortSignal): Promise<TagsPage> {
+  const response = await api<unknown>("/delivery/tags", { query: { ...query }, signal });
+  return { tags: parseResponse(tagsDataSchema, response.data).tags, meta: parseResponse(pageMetaSchema, response.meta) };
+}
+
+/** One tag and one page of its entries. An unknown tag makes the API answer 404. */
+export async function getTag(slug: string, query: { page?: number; limit?: number } = {}, signal?: AbortSignal): Promise<TagEntries> {
+  const response = await api<unknown>(`/delivery/tags/${encodeURIComponent(slug)}`, { query: { ...query }, signal });
+  const data = parseResponse(tagDetailDataSchema, response.data);
+  return { tag: data.tag, entries: { entries: data.entries, meta: parseResponse(pageMetaSchema, response.meta) } };
 }

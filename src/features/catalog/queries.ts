@@ -1,6 +1,6 @@
-import { keepPreviousData, queryOptions, type QueryClient } from "@tanstack/react-query";
-import { getCategories, getCategory, getEntries, getEntry, type EntriesQuery } from "@/features/catalog/api";
-import type { EntriesPage, EntrySummary } from "@/features/catalog/types";
+import { infiniteQueryOptions, keepPreviousData, queryOptions, type QueryClient } from "@tanstack/react-query";
+import { getCategories, getCategory, getEntries, getEntry, getQuestions, getTag, getTags, type EntriesQuery, type QuestionsQuery } from "@/features/catalog/api";
+import type { EntriesPage, EntrySummary, TagEntries, TagsPage, TagWithCount } from "@/features/catalog/types";
 
 /**
  * QUERY KEYS. A key is the address of one piece of cached data: same key, same cache entry, shared by every component.
@@ -25,6 +25,14 @@ export const catalogKeys = {
   sectionEntries: (categorySlug: string, sectionSlug: string) => [...catalogKeys.entries(), categorySlug, sectionSlug] as const,
   /** One entry in full. It sits under the same section prefix as the lists, so invalidating `sectionEntries` refreshes both, and each can still be targeted alone. */
   entryDetail: (categorySlug: string, sectionSlug: string, entrySlug: string) => [...catalogKeys.entries(), categorySlug, sectionSlug, "detail", entrySlug] as const,
+  questions: () => [...catalogKeys.all, "questions"] as const,
+  /** One page of questions with its filters (the paged view). */
+  questionList: (params: QuestionsQuery) => [...catalogKeys.questions(), "list", params] as const,
+  /** ALL loaded pages of questions with these filters (the infinite view): the page number is NOT in this key, it is the page PARAM. */
+  questionFeed: (params: QuestionsQuery) => [...catalogKeys.questions(), "feed", params] as const,
+  tags: () => [...catalogKeys.all, "tags"] as const,
+  tagList: (page: number) => [...catalogKeys.tags(), "list", { page }] as const,
+  tagDetail: (slug: string, page: number) => [...catalogKeys.tags(), "detail", slug, { page }] as const,
   entryList: (categorySlug: string, sectionSlug: string, params: EntriesQuery) => [...catalogKeys.sectionEntries(categorySlug, sectionSlug), "list", params] as const,
 };
 
@@ -99,3 +107,72 @@ export function findCachedEntrySummary(client: QueryClient, categorySlug: string
   }
   return undefined;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Questions (every topic) and tags
+// ---------------------------------------------------------------------------------------------
+
+/** Filters in a stable form: no empty strings, so "" and undefined are the same cache entry. */
+const cleanQuestionParams = (params: QuestionsQuery): QuestionsQuery => ({ ...params, search: params.search?.trim() || undefined });
+
+export const questionQueries = {
+  /** One page, for the paged view. */
+  list: (params: QuestionsQuery = {}) => {
+    const clean = cleanQuestionParams(params);
+    return queryOptions({
+      queryKey: catalogKeys.questionList(clean),
+      queryFn: ({ signal }) => getQuestions(clean, signal),
+    });
+  },
+  /**
+   * Every page loaded so far as ONE cache entry, for "load more" and infinite scroll. The API numbers its pages, so the
+   * page param is the next page number; `getNextPageParam` says which one comes next, or undefined when the last page is loaded.
+   */
+  feed: (params: QuestionsQuery = {}) => {
+    const clean = cleanQuestionParams(params);
+    return infiniteQueryOptions({
+      queryKey: catalogKeys.questionFeed(clean),
+      queryFn: ({ pageParam, signal }) => getQuestions({ ...clean, page: pageParam }, signal),
+      initialPageParam: 1,
+      getNextPageParam: (lastPage) => (lastPage.meta.page < lastPage.meta.totalPages ? lastPage.meta.page + 1 : undefined),
+    });
+  },
+};
+
+/** The API sends at most 100 tags per page. */
+export const TAGS_PER_PAGE = 100;
+
+export const tagQueries = {
+  list: (page: number) =>
+    queryOptions({
+      queryKey: catalogKeys.tagList(page),
+      queryFn: ({ signal }) => getTags({ page, limit: TAGS_PER_PAGE }, signal),
+    }),
+  /** One tag and one page of its entries. An unknown slug is a 404 (not retried). */
+  detail: (slug: string, page: number, limit: number) =>
+    queryOptions({
+      queryKey: catalogKeys.tagDetail(slug, page),
+      queryFn: ({ signal }) => getTag(slug, { page, limit }, signal),
+    }),
+};
+
+/**
+ * "Keep the previous result while the next loads", but only while it is about the SAME thing: the same value at `position`
+ * of the key. Used for a tag's pages: the next page of #Closures keeps the old one dimmed, but opening another tag never
+ * shows the last tag's entries.
+ */
+export const keepWhileSame =
+  <T,>(position: number, value: unknown) =>
+  (previous: T | undefined, previousQuery: { queryKey: readonly unknown[] } | undefined): T | undefined =>
+    previousQuery?.queryKey[position] === value ? keepPreviousData(previous) : undefined;
+
+/** Looks for a tag (with its count) in any cached page of the tag list: enough to draw the tag page's header at once. */
+export function findCachedTag(client: QueryClient, slug: string): TagWithCount | undefined {
+  for (const [, page] of client.getQueriesData<TagsPage>({ queryKey: [...catalogKeys.tags(), "list"] })) {
+    const hit = page?.tags.find((tag) => tag.slug === slug);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+export type { TagEntries };

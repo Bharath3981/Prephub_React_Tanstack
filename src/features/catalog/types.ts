@@ -94,3 +94,19 @@ export const entryDetailSchema = entrySummarySchema.extend({
 });
 export type EntryDetail = z.infer<typeof entryDetailSchema>;
 export const entryDataSchema = z.object({ entry: entryDetailSchema });
+
+/** A tag with the number of published entries that use it (GET /delivery/tags). */
+export const tagWithCountSchema = tagSchema.extend({ entryCount: z.number() });
+export type TagWithCount = z.infer<typeof tagWithCountSchema>;
+export const tagsDataSchema = z.object({ tags: z.array(tagWithCountSchema) });
+/** GET /delivery/tags/{tag}: the tag and one page of the entries that use it. */
+export const tagDetailDataSchema = z.object({ tag: tagWithCountSchema, entries: z.array(entrySummarySchema) });
+
+export interface TagsPage {
+  tags: TagWithCount[];
+  meta: PageMeta;
+}
+export interface TagEntries {
+  tag: TagWithCount;
+  entries: EntriesPage;
+}

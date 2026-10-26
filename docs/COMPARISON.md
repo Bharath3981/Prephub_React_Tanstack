@@ -31,3 +31,13 @@ Filled in step by step: each module adds its measured rows. The same pages, the 
 | Failed entry request | hand-written error state in the page | Suspense + error boundary: `EntryContent` has no loading or error code; "Try again" resets Query and the boundary; the side panel stays | M3 |
 | Entry page renders per navigation | 2 (skeleton, data) | **1** (`EntryPage`; the waiting happens inside Suspense) | M3 |
 | Tests | none yet (deferred in the pure app) | 18 tests (Vitest, Testing Library, msw), each with its own `QueryClient` | M3 |
+| `/questions` first load (requests) | categories + page 1 (+ page 2 prefetch is added in this app) | 3: categories (topic names), page 1, page 2 prefetched | M4 |
+| Home, then `/questions` (topic names) | requests the topics again | **0** for the names (same key as Home) | M4 |
+| All 244 questions in one infinite list (requests) | 13 with a hand-made loader | 13, one per page, **0 duplicates** while scrolling (`useInView` plus `isFetchingNextPage`) | M4 |
+| DOM after loading all 244 questions | 244 rows, 4579 DOM nodes | **9 rows, 614 nodes** with TanStack Virtual (the list box is still ~40,000 px tall, so the scroll bar is right) | M4 |
+| Scrolled to the middle of the 244 | all rows exist | 19 rows exist (rows 114 to 132) | M4 |
+| `/tags` | 1 request, list in the component | 1 request, `select` computes the cloud sizes once per data change | M4 |
+| Tag chip hover, then click | page loads on click | hover starts the request; on click the 13 entries and the header are there within 200 ms, 0 requests on click | M4 |
+| Tag page header | waits for its own request | drawn from the cached tags list (name and count) while the entries load | M4 |
+| Unknown tag | 1 request, not-found page | 1 request, not-found page (4xx is not retried) | M4 |
+| Tests | 18 | 28 (+ paged filters in the request, next-page prefetch, sentinel loading each page once, Load more, virtual and plain lists, tag header from cache, tag 404 with one request) | M4 |

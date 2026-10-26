@@ -2,6 +2,9 @@ import { createBrowserRouter } from "react-router";
 import { CategoryPage } from "@/features/catalog/CategoryPage";
 import { EntryPage } from "@/features/catalog/EntryPage";
 import { HomePage } from "@/features/catalog/HomePage";
+import { QuestionsPage } from "@/features/catalog/QuestionsPage";
+import { TagPage } from "@/features/catalog/TagPage";
+import { TagsPage } from "@/features/catalog/TagsPage";
 import { SectionLayout } from "@/features/catalog/SectionLayout";
 import { SectionPage } from "@/features/catalog/SectionPage";
 import { RootLayout } from "@/app/layouts/RootLayout";
@@ -28,8 +31,9 @@ export const router = createBrowserRouter([
         errorElement: <RouteError />,
         children: [
           { index: true, element: <HomePage /> },
-          { path: "questions", element: <PlaceholderPage title="Questions" module="M4" /> },
-          { path: "tags", element: <PlaceholderPage title="Tags" module="M4" /> },
+          { path: "questions", element: <QuestionsPage /> },
+          { path: "tags", element: <TagsPage /> },
+          { path: "tags/:tag", element: <TagPage /> },
           { path: "search", element: <PlaceholderPage title="Search" module="M5" /> },
           // Development-only pages: a crash test for the error boundaries, and useEffect fetch vs useQuery side by side.
           ...(import.meta.env.DEV

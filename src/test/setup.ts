@@ -14,3 +14,37 @@ afterEach(() => {
   server.resetHandlers();
 });
 afterAll(() => server.close());
+
+// jsdom has no layout engine, so it has no IntersectionObserver or ResizeObserver. These stand-ins let a test decide WHEN an
+// element "comes into view": `MockIntersectionObserver.trigger()` plays the browser telling the app that the sentinel is visible.
+export class MockIntersectionObserver {
+  static instances = new Set<MockIntersectionObserver>();
+  constructor(private callback: IntersectionObserverCallback) {
+    MockIntersectionObserver.instances.add(this);
+  }
+  observe() {}
+  unobserve() {}
+  disconnect() {
+    MockIntersectionObserver.instances.delete(this);
+  }
+  takeRecords() {
+    return [];
+  }
+  static trigger() {
+    for (const instance of MockIntersectionObserver.instances) instance.callback([{ isIntersecting: true } as IntersectionObserverEntry], instance as unknown as IntersectionObserver);
+  }
+}
+vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+vi.stubGlobal(
+  "ResizeObserver",
+  class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+);
+afterEach(() => MockIntersectionObserver.instances.clear());
+
+// jsdom does not implement scrolling.
+Element.prototype.scrollIntoView = () => {};
+window.scrollTo = () => {};

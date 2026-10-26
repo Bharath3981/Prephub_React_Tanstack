@@ -1,6 +1,6 @@
 import { EntryLink } from "@/features/catalog/EntryLink";
 import type { EntryDetail } from "@/features/catalog/types";
-import { TagChip } from "@/shared/ui/TagChip";
+import { TagLink } from "@/features/catalog/TagLink";
 
 /** Facts that depend on the kind of entry, taken from its `meta`. */
 function KindMeta({ entry }: { entry: EntryDetail }) {
@@ -54,7 +54,7 @@ export function EntryExtras({ entry }: { entry: EntryDetail }) {
         <ul className="flex flex-wrap gap-1.5" aria-label="Tags">
           {entry.tags.map((tag) => (
             <li key={tag.slug}>
-              <TagChip tag={tag} />
+              <TagLink tag={tag} />
             </li>
           ))}
         </ul>

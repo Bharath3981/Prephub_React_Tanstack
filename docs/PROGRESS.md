@@ -87,6 +87,27 @@ Concepts covered: lazy loading and code splitting, Suspense and error boundaries
 
 **Questions covered in M3: 5 (running total 33 of 62):** #21, #26, #27, #31, #8. TanStack: T11, T24 (reading the cache with `getQueriesData`; `useQueries` moves to the admin dashboard in M8 where several counts load at once).
 
+## M4 Questions and tags: done
+
+- [x] 4.1 `/questions` (numbered pages): the list part of `SectionPage` became a shared `EntryResults` (filter slot, "Showing x to y", skeleton, error, empty, out-of-range message, pager) used by the section, questions and tag pages. Filters in the URL (`category`, `difficulty`, `search`, `page`, `view`). Topic select and the topic badge on each card come from the categories query (same key as Home: from the cache). `usePrefetchNextPage` (shared hook) prefetches the next page. `EntryRow` split into `EntryCard` (memo, no `<li>`) and a plain `<li>` wrapper, so the virtual list can position its own `<li>`.
+- [x] 4.2 Infinite view (`?view=infinite`): `useInfiniteQuery` with `infiniteQueryOptions` (`initialPageParam: 1`, `getNextPageParam` from `meta.page < meta.totalPages`). The filters are in the key and the page number is not, so changing a filter starts a new query from page 1. "Load more" button and an `IntersectionObserver` sentinel (`useInView`, switched off while a page is loading or when there is no next page) so the next page is requested once; a failed page shows "Try again" without hiding the loaded ones.
+- [x] 4.3 TanStack Virtual (`useWindowVirtualizer`): the window scrolls, the list is one tall box, only rows near the screen are rendered; rows are measured (`measureElement`) because their heights differ; `getItemKey` uses the entry's address, not the index; a checkbox switches between the virtual and the plain list.
+- [x] 4.4 `/tags`: 100 per page (the API maximum), 5 pages, cloud sizes computed in `select` (module-level function), hover prefetch of the tag page (`TagLink`, `TagChip` takes `intent` handlers and `weight`).
+- [x] 4.5 `/tags/:tag`: header (name and count) from the cached tag list while the entries load (`findCachedTag`), paged entries with `keepWhileSame` (the previous page is kept only for the SAME tag), 404 not retried, tag chips on entry pages use `TagLink`
+- [x] 4.6 Tests (10 new, 28 in total), numbers in `docs/COMPARISON.md`
+
+Measured (development, Strict Mode off):
+- `/questions`: 3 requests on a first load (topics, page 1, page 2 prefetched); topic filter: page 1 and page 2 of that topic; page 2 click is instant; Home then back to `/questions`: 0 requests.
+- Infinite list in real Chrome (the embedded preview browser has no `IntersectionObserver` events): scrolling to the end loaded 13 pages with no duplicates and showed "That is every question". At the middle of the scroll the DOM held rows 114 to 132 (19 rows) of 244; the list box is about 40,000 px tall.
+- With all 244 loaded: virtual list 9 rows and 614 DOM nodes; plain list 244 rows and 4579 DOM nodes.
+- `/tags`: 100 chips from 1 request; sizes from 4 weights; hovering a tag requests its first page, the click shows header and 13 rows within 200 ms with 0 requests; `/tags/nope`: not-found page after 1 request.
+
+Concepts covered: infinite scroll (an IntersectionObserver sentinel, `fetchNextPage`, `hasNextPage`, `isFetchingNextPage`), cursor vs offset (this API is offset/page based, so the page number is the page param), windowing and what it costs (find-in-page, measuring, scroll restoration), reusing one list component across pages, `select`, structural sharing and `memo`, prefetch on intent and of the next page, 404 handling, testing observers (stand-in classes in jsdom, a fake API).
+
+Things learned: the embedded preview browser had a 0 x 0 window until I set a viewport (the virtual list rendered nothing); the `msw` option is `onUnhandledFrame` in version 3; jsdom lacks `scrollIntoView`, `IntersectionObserver` and layout, so tests stub them.
+
+**Questions covered in M4: 2 (running total 35 of 62):** #47, #22. TanStack: T9, T19.
+
 ## Next
 
 | Module | Steps | Questions (new) | Total after |
@@ -94,7 +115,7 @@ Concepts covered: lazy loading and code splitting, Suspense and error boundaries
 | [x] M1 Home page and the first query | 1.1 key factory and `queryOptions`, 1.2 `useQuery` on Home, 1.3 `staleTime` and `gcTime` experiments, 1.4 retry, focus and reconnect, 1.5 `useFetch` vs `useQuery` side by side, 1.6 measure | #17, #23, #5, #6, #7, #14, #56, #41 (8), T1 to T5, T22 | 19 |
 | [x] M2 Category, section and list | 2.1 category with 404, 2.2 section layout and URL state, 2.3 `keepPreviousData` paging, 2.4 debounced search, 2.5 shared panel query and `select`, 2.6 prefetch on hover, 2.7 memo and render budget, 2.8 keys and stale closure, 2.9 measure | #24, #12, #46, #19, #11, #2, #10, #53, #15 (9), T6 to T8 | 28 |
 | [x] M3 Entry page | 3.1 entry from the list cache, 3.2 safe HTML and lazy code editor, 3.3 `useSuspenseQuery`, 3.4 related and prefetch, 3.5 route polish, 3.6 tests start, 3.7 `useTransition` and `use`, 3.8 measure | #21, #26, #27, #31, #8 (5), T11, T24 | 33 |
-| [ ] M4 Questions and tags | 4.1 `/questions`, 4.2 `useInfiniteQuery`, 4.3 TanStack Virtual, 4.4 `/tags`, 4.5 `/tags/:tag`, 4.6 measure | #47, #22 (2), T9, T19 | 35 |
+| [x] M4 Questions and tags | 4.1 `/questions`, 4.2 `useInfiniteQuery`, 4.3 TanStack Virtual, 4.4 `/tags`, 4.5 `/tags/:tag`, 4.6 measure | #47, #22 (2), T9, T19 | 35 |
 | [ ] M5 Search | 5.1 `enabled` search, 5.2 safe snippets, 5.3 `useDeferredValue` vs debounce, 5.4 profile and fix, 5.5 measure | #39, #4 (2), T10 | 37 |
 | [ ] M6 Polish and quality | 6.1 loading, error and empty components, 6.2 accessibility, 6.3 performance budget, 6.4 Web Vitals, 6.5 cross-browser, 6.6 cache persistence, 6.7 refetch policies, 6.8 tests, 6.9 deploy | #20, #38, #40, #44, #45 (5), T14 to T16 | 42 |
 | [ ] M7 Auth | 7.1 `me` query, 7.2 login and logout mutations, 7.3 token refresh, 7.4 route guards, 7.5 password pages, 7.6 header and tests | #29, #30 (2), T17 | 44 |
