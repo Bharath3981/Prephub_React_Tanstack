@@ -1,11 +1,13 @@
 import { createBrowserRouter } from "react-router";
 import { CategoryPage } from "@/features/catalog/CategoryPage";
+import { EntryPage } from "@/features/catalog/EntryPage";
 import { HomePage } from "@/features/catalog/HomePage";
 import { SectionLayout } from "@/features/catalog/SectionLayout";
 import { SectionPage } from "@/features/catalog/SectionPage";
 import { RootLayout } from "@/app/layouts/RootLayout";
 import { DevBoomPage } from "@/app/pages/DevBoomPage";
 import { DevFetchVsQueryPage } from "@/app/pages/DevFetchVsQueryPage";
+import { DevReact19Page } from "@/app/pages/DevReact19Page";
 import { DevStaleClosurePage } from "@/app/pages/DevStaleClosurePage";
 import { NotFoundPage } from "@/app/pages/NotFoundPage";
 import { PlaceholderPage } from "@/app/pages/PlaceholderPage";
@@ -35,6 +37,7 @@ export const router = createBrowserRouter([
                 { path: "dev/boom", element: <DevBoomPage /> },
                 { path: "dev/fetch-vs-query", element: <DevFetchVsQueryPage /> },
                 { path: "dev/stale-closure", element: <DevStaleClosurePage /> },
+                { path: "dev/react-19", element: <DevReact19Page /> },
               ]
             : []),
           // A topic and its sections. The static routes above (questions, tags, search, dev/...) win over these dynamic ones.
@@ -45,7 +48,7 @@ export const router = createBrowserRouter([
             element: <SectionLayout />,
             children: [
               { index: true, element: <SectionPage /> },
-              { path: ":entry", element: <PlaceholderPage title="Entry" module="M3" /> },
+              { path: ":entry", element: <EntryPage /> },
             ],
           },
           { path: "*", element: <NotFoundPage /> },

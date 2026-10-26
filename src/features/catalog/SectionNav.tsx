@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+import { EntryLink } from "@/features/catalog/EntryLink";
 import type { NavGroup } from "@/features/catalog/group-entries";
 import { cn } from "@/shared/lib/cn";
 import { Skeleton } from "@/shared/ui/Skeleton";
@@ -39,9 +40,9 @@ const Nav = memo(function Nav({ category, section, sectionName, groups, current 
           <ul className="space-y-0.5 pl-2">
             {group.items.map((item) => (
               <li key={item.slug}>
-                <Link to={`/${category}/${section}/${item.slug}`} aria-current={current === item.slug ? "page" : undefined} className={cn(link, current === item.slug ? on : off)}>
+                <EntryLink categorySlug={category} sectionSlug={section} slug={item.slug} aria-current={current === item.slug ? "page" : undefined} className={cn(link, current === item.slug ? on : off)}>
                   {item.title}
-                </Link>
+                </EntryLink>
               </li>
             ))}
           </ul>

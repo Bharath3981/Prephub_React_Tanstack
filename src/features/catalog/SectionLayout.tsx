@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Outlet, useParams } from "react-router";
 import { NotFoundPage } from "@/app/pages/NotFoundPage";
-import { navGroups, type NavGroup } from "@/features/catalog/group-entries";
+import { navGroups, type NavGroup, type NavItem } from "@/features/catalog/group-entries";
 import { categoryQueries, entryQueries, SECTION_PANEL_PARAMS } from "@/features/catalog/queries";
 import { SectionNavDesktop, SectionNavMobile, SectionNavSkeleton } from "@/features/catalog/SectionNav";
 import type { DeliveryCategoryDetail, DeliverySection, EntriesPage } from "@/features/catalog/types";
@@ -14,14 +14,25 @@ import { Skeleton } from "@/shared/ui/Skeleton";
 export interface SectionContext {
   category: DeliveryCategoryDetail;
   section: DeliverySection;
+  /** The section's entries in the order of the side panel, for previous and next. null while loading or for a section with fewer than 2 entries. */
+  entryOrder: NavItem[] | null;
 }
 
 /**
- * The side panel groups, worked out INSIDE the query with `select`. It is a function defined once at module level, so its
- * identity never changes: TanStack Query then re-runs it only when the data changes, and returns the SAME `groups` array
+ * The side panel data (groups and the reading order), worked out INSIDE the query with `select`. It is a function defined once at module level, so its
+ * identity never changes: TanStack Query then re-runs it only when the data changes, and returns the SAME object
  * on every other render. That is what lets the memoised panel skip renders, with no useMemo in the component.
  */
-const selectGroups = (page: EntriesPage): NavGroup[] | null => (page.entries.length >= 2 ? navGroups(page.entries) : null);
+interface PanelData {
+  groups: NavGroup[];
+  /** The entries in the order of the panel (group by group): the order of "previous" and "next". */
+  order: NavItem[];
+}
+const selectPanel = (page: EntriesPage): PanelData | null => {
+  if (page.entries.length < 2) return null;
+  const groups = navGroups(page.entries);
+  return { groups, order: groups.flatMap((group) => group.items) };
+};
 
 /**
  * The frame shared by a section's list page and all of its entries: the side panel plus the page beside it.
@@ -35,8 +46,8 @@ export function SectionLayout() {
   const { category: categorySlug = "", section: sectionSlug = "", entry: currentEntry } = useParams();
   const category = useQuery(categoryQueries.detail(categorySlug));
   // All entries (the API allows 100 at most) for the panel; the list page asks for its own page separately.
-  const panel = useQuery({ ...entryQueries.list(categorySlug, sectionSlug, SECTION_PANEL_PARAMS), select: selectGroups });
-  const groups = panel.data ?? null;
+  const panel = useQuery({ ...entryQueries.list(categorySlug, sectionSlug, SECTION_PANEL_PARAMS), select: selectPanel });
+  const groups = panel.data?.groups ?? null;
 
   if (category.isError && isNotFound(category.error)) return <NotFoundPage />;
   if (category.isError && !category.data) return <ErrorState title="Could not load this topic" error={category.error} onRetry={() => void category.refetch()} />;
@@ -58,7 +69,7 @@ export function SectionLayout() {
   // A section with a single entry has nothing to navigate. The panel is a convenience: if its request fails, the page still works.
   const showNav = panel.isPending || groups !== null;
   const nav = { category: topic.slug, section: section.slug, sectionName: section.name, current: currentEntry };
-  const context: SectionContext = { category: topic, section };
+  const context: SectionContext = { category: topic, section, entryOrder: panel.data?.order ?? null };
 
   return (
     <div className={showNav ? "lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-10" : undefined}>

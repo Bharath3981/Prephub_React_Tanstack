@@ -1,6 +1,6 @@
-import { keepPreviousData, queryOptions } from "@tanstack/react-query";
-import { getCategories, getCategory, getEntries, type EntriesQuery } from "@/features/catalog/api";
-import type { EntriesPage } from "@/features/catalog/types";
+import { keepPreviousData, queryOptions, type QueryClient } from "@tanstack/react-query";
+import { getCategories, getCategory, getEntries, getEntry, type EntriesQuery } from "@/features/catalog/api";
+import type { EntriesPage, EntrySummary } from "@/features/catalog/types";
 
 /**
  * QUERY KEYS. A key is the address of one piece of cached data: same key, same cache entry, shared by every component.
@@ -23,6 +23,8 @@ export const catalogKeys = {
   entries: () => [...catalogKeys.all, "entries"] as const,
   /** Every cached page of one section: invalidate this after editing an entry and all its pages refresh. */
   sectionEntries: (categorySlug: string, sectionSlug: string) => [...catalogKeys.entries(), categorySlug, sectionSlug] as const,
+  /** One entry in full. It sits under the same section prefix as the lists, so invalidating `sectionEntries` refreshes both, and each can still be targeted alone. */
+  entryDetail: (categorySlug: string, sectionSlug: string, entrySlug: string) => [...catalogKeys.entries(), categorySlug, sectionSlug, "detail", entrySlug] as const,
   entryList: (categorySlug: string, sectionSlug: string, params: EntriesQuery) => [...catalogKeys.sectionEntries(categorySlug, sectionSlug), "list", params] as const,
 };
 
@@ -60,6 +62,13 @@ export const entryQueries = {
   },
 };
 
+/** The full entry (with its body). Used by the entry page, and by prefetching on hover and for previous and next. */
+export const entryDetailQuery = (categorySlug: string, sectionSlug: string, entrySlug: string) =>
+  queryOptions({
+    queryKey: catalogKeys.entryDetail(categorySlug, sectionSlug, entrySlug),
+    queryFn: ({ signal }) => getEntry(categorySlug, sectionSlug, entrySlug, signal),
+  });
+
 /** Every entry of a section in one request (the API's maximum is 100): the side panel is built from it. */
 export const SECTION_PANEL_PARAMS: EntriesQuery = { limit: 100 };
 
@@ -72,3 +81,21 @@ export const keepPageInSection =
   (categorySlug: string, sectionSlug: string) =>
   (previous: EntriesPage | undefined, previousQuery: { queryKey: readonly unknown[] } | undefined): EntriesPage | undefined =>
     previousQuery?.queryKey[2] === categorySlug && previousQuery.queryKey[3] === sectionSlug ? keepPreviousData(previous) : undefined;
+
+/**
+ * Looks for the list row of an entry in ANY list page already in the cache (a section page, a filtered page, the side panel).
+ * The row has the title, summary, kind, difficulty and tags: enough to draw the top of the entry page at once while the
+ * full entry (with the body) loads.
+ *
+ * Why not `initialData` for the entry query? initialData must have the SAME shape as the query's data. A list row has no
+ * body, so putting it in the entry cache would store a half-entry that looks complete (and `staleTime` could even keep it).
+ * Reading it on the side keeps the entry cache honest: it holds full entries only.
+ */
+export function findCachedEntrySummary(client: QueryClient, categorySlug: string, sectionSlug: string, entrySlug: string): EntrySummary | undefined {
+  for (const [key, page] of client.getQueriesData<EntriesPage>({ queryKey: catalogKeys.sectionEntries(categorySlug, sectionSlug) })) {
+    if (key[4] !== "list" || !page) continue; // the same prefix also holds opened entries; only list pages have `entries`
+    const hit = page.entries.find((entry) => entry.slug === entrySlug);
+    if (hit) return hit;
+  }
+  return undefined;
+}

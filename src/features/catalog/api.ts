@@ -4,11 +4,13 @@ import {
   categoriesDataSchema,
   categoryDetailDataSchema,
   entriesDataSchema,
+  entryDataSchema,
   pageMetaSchema,
   type DeliveryCategory,
   type DeliveryCategoryDetail,
   type Difficulty,
   type EntriesPage,
+  type EntryDetail,
 } from "@/features/catalog/types";
 
 /**
@@ -39,4 +41,11 @@ export async function getEntries(categorySlug: string, sectionSlug: string, quer
   const path = `/delivery/categories/${encodeURIComponent(categorySlug)}/sections/${encodeURIComponent(sectionSlug)}/entries`;
   const response = await api<unknown>(path, { query: { ...query }, signal });
   return { entries: parseResponse(entriesDataSchema, response.data).entries, meta: parseResponse(pageMetaSchema, response.meta) };
+}
+
+/** One entry in full. An unknown slug makes the API answer 404 (an ApiRequestError with status 404). */
+export async function getEntry(categorySlug: string, sectionSlug: string, entrySlug: string, signal?: AbortSignal): Promise<EntryDetail> {
+  const path = `/delivery/categories/${encodeURIComponent(categorySlug)}/sections/${encodeURIComponent(sectionSlug)}/entries/${encodeURIComponent(entrySlug)}`;
+  const response = await api<unknown>(path, { signal });
+  return parseResponse(entryDataSchema, response.data).entry;
 }

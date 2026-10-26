@@ -66,3 +66,31 @@ export interface EntriesPage {
   entries: EntrySummary[];
   meta: PageMeta;
 }
+
+/** A link to another entry: used by "related" and by previous/next. */
+export const entryLinkSchema = z.object({ title: z.string(), slug: z.string(), categorySlug: z.string(), sectionSlug: z.string() });
+export type EntryLink = z.infer<typeof entryLinkSchema>;
+
+/**
+ * GET /delivery/categories/{c}/sections/{s}/entries/{slug}: one entry in full. It is the list row plus the body
+ * (`bodyHtml`, built by the API from markdown), dates, `meta` (follow-up questions, reading time), the topic and section it
+ * sits in, and related entries.
+ */
+export const entryDetailSchema = entrySummarySchema.extend({
+  id: z.string(),
+  publishedAt: z.string().nullable(),
+  updatedAt: z.string(),
+  bodyHtml: z.string(),
+  // What `meta` holds depends on the kind: questions have followUps, examples have a scenario and a language, lessons have a reading time.
+  meta: z.object({
+    followUps: z.array(z.string()).optional(),
+    readingMinutes: z.number().optional(),
+    scenario: z.string().optional(),
+    language: z.string().optional(),
+  }),
+  category: z.object({ name: z.string(), slug: z.string() }),
+  section: z.object({ name: z.string(), slug: z.string(), kind: kindSchema }),
+  related: z.array(entryLinkSchema),
+});
+export type EntryDetail = z.infer<typeof entryDetailSchema>;
+export const entryDataSchema = z.object({ entry: entryDetailSchema });

@@ -65,13 +65,35 @@ Concepts covered: URL as state, pagination (page-based) with keys, debounce with
 
 **Questions covered in M2: 9 (running total 28 of 62):** #24, #12, #46, #19, #11, #2, #10, #53, #15. TanStack: T6 (placeholderData; initialData comes in M3), T7, T8.
 
+## M3 Entry page: done
+
+- [x] 3.1 Entry query (`entryDetailQuery`, key `["catalog","entries",cat,section,"detail",slug]`). The top of the page (title, kind, difficulty, summary) is drawn from the LIST ROW already in the cache (`findCachedEntrySummary`, reads every cached list page of the section), the body waits. Not `initialData`: a list row has no body, and `initialData` must have the shape of the query's data, so it would store a half entry that looks complete.
+- [x] 3.2 Safe body: the API's HTML is sanitised with DOMPurify (allow-list), turned into React elements; code blocks are coloured by highlight.js (lazy), and on React topics shown in a CodeMirror editor loaded on demand (`React.lazy`: 6 files only when such an entry opens)
+- [x] 3.3 `useSuspenseQuery` version: `EntryPage` = `QueryErrorResetBoundary` + `ErrorBoundary` (404 gives the not-found page, other errors give "Try again", which resets Query and the boundary) + `Suspense` (fallback: the cached row and a body skeleton) + `EntryContent` (no loading or error code at all)
+- [x] 3.4 Prefetching entries: `EntryLink` (hover and focus) used by the side panel, "Related" and "Previous / Next"; `EntryPager` prefetches both neighbours after the entry shows. `select` in `SectionLayout` now also returns the reading order for previous and next.
+- [x] 3.5 Route polish: `ScrollRestoration`, `RouteFocus` (focus moves to `<main>` on a path change), `RouteAnnouncer` (the new title is read out); titles per page
+- [x] 3.6 Tests: Vitest 5, Testing Library, jest-dom, msw 3 (a fake API; in this msw version the option is `onUnhandledFrame: "error"`), jsdom 26 (newer jsdom needs Node >= 22.14). `renderPage` gives every test a fresh `QueryClient` (retry off) and a memory router. Files: retry rule, sanitiser (XSS cases), keys and cache helpers, Home page (skeleton, error and retry, second visit from cache), entry page (cached row first, 404, 500). **18 tests, all pass.**
+- [x] 3.7 `/dev/react-19`: `ref` as a prop, `use(promise)` with `useTransition` (the old value stays, dimmed, while the new loads), `useDeferredValue` (a keystroke blocks 189 ms without it and 6 ms with it; the list catches up about 190 ms later; `memo` on the list is required), and the order of layout effects, effects and cleanups
+- [x] 3.8 Measured and added to `docs/COMPARISON.md`
+
+Measured in the browser (development, Strict Mode off):
+- Click an entry in the list with the entry request slowed to 700 ms: at 150 ms the title, badges and summary are on screen with a body skeleton; the body arrives after. Revisit: body at once, 0 requests.
+- After an entry loads, its two neighbours are requested; "Next" shows the body within 250 ms, scrolls to the top, moves focus to `<main>` and the announcer says the new title. Hovering a panel link requests that entry; the click is instant.
+- Unknown entry: not-found page. A 500: error with the message and "Try again", the side panel still there; after the retry works the body shows.
+- `EntryPage` renders once per navigation; `SectionNav` renders twice (desktop and mobile copies, needed because the open entry changed).
+- The React topic loaded CodeMirror and its language and theme files only when an entry with code opened.
+
+Concepts covered: lazy loading and code splitting, Suspense and error boundaries together, concurrent rendering (`useTransition`, `useDeferredValue`), `use`, `ref` as a prop, the effect order (class lifecycle in hooks, `useLayoutEffect`), React 18 vs 19, sanitising HTML (XSS), testing components with Query (fresh client, fake API, no retries), reading the cache without owning it.
+
+**Questions covered in M3: 5 (running total 33 of 62):** #21, #26, #27, #31, #8. TanStack: T11, T24 (reading the cache with `getQueriesData`; `useQueries` moves to the admin dashboard in M8 where several counts load at once).
+
 ## Next
 
 | Module | Steps | Questions (new) | Total after |
 |---|---|---|---|
 | [x] M1 Home page and the first query | 1.1 key factory and `queryOptions`, 1.2 `useQuery` on Home, 1.3 `staleTime` and `gcTime` experiments, 1.4 retry, focus and reconnect, 1.5 `useFetch` vs `useQuery` side by side, 1.6 measure | #17, #23, #5, #6, #7, #14, #56, #41 (8), T1 to T5, T22 | 19 |
 | [x] M2 Category, section and list | 2.1 category with 404, 2.2 section layout and URL state, 2.3 `keepPreviousData` paging, 2.4 debounced search, 2.5 shared panel query and `select`, 2.6 prefetch on hover, 2.7 memo and render budget, 2.8 keys and stale closure, 2.9 measure | #24, #12, #46, #19, #11, #2, #10, #53, #15 (9), T6 to T8 | 28 |
-| [ ] M3 Entry page | 3.1 entry from the list cache, 3.2 safe HTML and lazy code editor, 3.3 `useSuspenseQuery`, 3.4 related and prefetch, 3.5 route polish, 3.6 tests start, 3.7 `useTransition` and `use`, 3.8 measure | #21, #26, #27, #31, #8 (5), T11, T24 | 33 |
+| [x] M3 Entry page | 3.1 entry from the list cache, 3.2 safe HTML and lazy code editor, 3.3 `useSuspenseQuery`, 3.4 related and prefetch, 3.5 route polish, 3.6 tests start, 3.7 `useTransition` and `use`, 3.8 measure | #21, #26, #27, #31, #8 (5), T11, T24 | 33 |
 | [ ] M4 Questions and tags | 4.1 `/questions`, 4.2 `useInfiniteQuery`, 4.3 TanStack Virtual, 4.4 `/tags`, 4.5 `/tags/:tag`, 4.6 measure | #47, #22 (2), T9, T19 | 35 |
 | [ ] M5 Search | 5.1 `enabled` search, 5.2 safe snippets, 5.3 `useDeferredValue` vs debounce, 5.4 profile and fix, 5.5 measure | #39, #4 (2), T10 | 37 |
 | [ ] M6 Polish and quality | 6.1 loading, error and empty components, 6.2 accessibility, 6.3 performance budget, 6.4 Web Vitals, 6.5 cross-browser, 6.6 cache persistence, 6.7 refetch policies, 6.8 tests, 6.9 deploy | #20, #38, #40, #44, #45 (5), T14 to T16 | 42 |

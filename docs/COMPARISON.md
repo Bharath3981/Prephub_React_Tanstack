@@ -25,3 +25,9 @@ Filled in step by step: each module adds its measured rows. The same pages, the 
 | `SectionNav` renders on a filter or page change | 0 (after `memo`) | 0 (`select` returns the same `groups` array, no `useMemo`) | M2 |
 | Moving to another section while a list is on screen | scoped `useKeepPrevious` | scoped `placeholderData` function (plain `keepPreviousData` would show the old section's rows) | M2 |
 | Lines of data-fetching code in `SectionPage` | `useFetch` + `useKeepPrevious` + effect | one `useQuery` with options | M2 |
+| Opening an entry from a list | skeleton for the whole page, then everything | title, badges and summary at once (the list row from the cache), body skeleton, then the body | M3 |
+| Revisiting an entry | request again | **0** requests, body at once | M3 |
+| "Next" / "Previous" and panel links | load on click | the neighbours are prefetched after the page loads and the panel link on hover: body present 250 ms after the click, 0 waiting | M3 |
+| Failed entry request | hand-written error state in the page | Suspense + error boundary: `EntryContent` has no loading or error code; "Try again" resets Query and the boundary; the side panel stays | M3 |
+| Entry page renders per navigation | 2 (skeleton, data) | **1** (`EntryPage`; the waiting happens inside Suspense) | M3 |
+| Tests | none yet (deferred in the pure app) | 18 tests (Vitest, Testing Library, msw), each with its own `QueryClient` | M3 |

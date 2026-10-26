@@ -10,6 +10,7 @@ export function Footer() {
           <nav aria-label="Development tools" className="flex gap-3">
             <Link className="underline" to="/dev/fetch-vs-query">Fetch vs Query</Link>
             <Link className="underline" to="/dev/stale-closure">Stale closure</Link>
+            <Link className="underline" to="/dev/react-19">React 19</Link>
             <Link className="underline" to="/dev/boom">Crash</Link>
           </nav>
         )}
